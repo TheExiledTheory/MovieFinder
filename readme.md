@@ -3,7 +3,7 @@
 <!-- Header section -->
 <br />
 <div align="center">
-  <a href="https://filmfinder.xyz">
+  <a href="https://filmfinder.xyz" target="_blank">
     <img src="pictures/logo.png" alt="Logo" width="800" height="100">
   </a>
  
