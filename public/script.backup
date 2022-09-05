@@ -1,0 +1,210 @@
+// Obtained from https://www.themoviedb.org/settings/api
+
+// Retrieve API KEY from internal express server
+var getKey = new Promise(async function (resolve, reject) {
+	try {
+		// Fetch local API for key 
+		var response = await fetch("http://localhost:8080/api");
+		await response; 
+
+		// Verify response
+		if (response.ok) {
+			// Return key 
+			var key = await response.json();
+			resolve(key); 
+		} else {
+			console.log("Error: " + response.status);
+			throw new Error("Error in fetching request!");
+		}
+
+	} catch (error) {
+		console.log(error.message);
+		reject("Error");
+	}
+});
+
+// Api key 
+let tmdbKey = null;
+// Base url of the API 
+const tmdbBaseUrl = 'https://api.themoviedb.org/3';
+// Get the element for user interaction 
+const playBtn = document.getElementById('playBtn');
+// Tracking variables 
+let page = 1;
+let movies = [];
+
+// Fetch the genres 
+const getGenres = async() => {
+
+	// Set the global API key 
+	tmdbKey = await getKey;
+
+  	// Setup request URL 
+  	var genreRequestEndpoint = tmdbBaseUrl + '/genre/movie/list'; 
+  	var requestParams = '?api_key=' + tmdbKey + '&language=en-US';
+  	var urlToFetch = genreRequestEndpoint + requestParams; 
+
+  	try {
+      	// Generate a fetch request 
+      	var response = await fetch(urlToFetch);
+      	// Check for a valid response 
+      	if (response.ok) {
+        	// Convert the response to JSON 
+        	var jsonResponse = await response.json(); 
+        	// Grab generes
+        	var genres = jsonResponse['genres']; 
+        	return genres;
+      	}
+      	console.log("Finished fetching genres!");
+      	//Error check 
+      	throw new Error('Failed request');
+
+  	} catch (error) {
+      	console.log(error.message);
+  	}
+
+};
+
+const getMovies = async() => {
+
+	// Check to see if we have exhausted list 
+	if (moviesSeen >= 20) {
+		console.log("movieSeen >= 20!");
+		//alert('You have seen 20 movies. Changing page selection!');
+		page++;
+		moviesSeen = 0;
+
+		movies.splice(0, movies.length);
+		console.log("Movies array = " + movies);
+
+	}
+
+  	// Get the selected genre from drop down 
+  	const selectedGenre = getSelectedGenre();
+  	// Setup the request URL 
+  	var discoverMovieEndpoint = tmdbBaseUrl + '/discover/movie';
+  	var requestParams = "?api_key=" + tmdbKey + "&language=en-US" + "&with_genres=" + selectedGenre + "&sort_by=popularity.desc&primary_release_year=2022" + "&page=" + page;
+  	var urlToFetch = discoverMovieEndpoint + requestParams + ""; 
+
+  	try {
+    	// Send request 
+    	var response = await fetch(urlToFetch);
+    	await response; 
+
+		// Check for a valid response
+		if (response.ok) {
+			// Convert the response to JSON 
+			var jsonResponse = await response.json(); 
+			// Grab movies 
+			var temp_movies = await jsonResponse['results'];
+
+			// Loop through movies and save to array 
+			for (movie in temp_movies) {
+				movies.push(temp_movies[movie]);
+				console.log("Movies have been added to array!");
+			}
+
+			return; 
+			//return movies; 
+		}
+		// Error check 
+		throw new Error('Failed request');
+
+  	} catch (error) {
+    	console.log(error.message);
+  	}
+
+};
+// Fetch info on movies
+const getMovieInfo = async(movie) => {
+  	// Get the movie id field 
+  	var movieId = movie.id; 
+
+	// Setup the request URL 
+	var movieEndpoint = '/movie/' + movieId;
+	var requestParams = "?api_key=" + tmdbKey + "&language=en-US";
+	var urlToFetch = tmdbBaseUrl + movieEndpoint + requestParams; 
+
+	try {
+		// Send request 
+		var response = await fetch(urlToFetch); 
+		await response; 
+
+		// Check if valid response
+		if (response.ok) {
+			var movieInfo = await response.json(); 
+			console.log("Fetched movie info!");
+			return movieInfo; 
+		}
+	} catch (error) {
+		console.log(error.message); 
+	}
+
+};
+
+// Displays info from a random movie 
+const showRandomMovie = async() => {
+	const movieInfo = document.getElementById('movieInfo');
+
+	// Check for displayed movies
+	if (movieInfo.childNodes.length > 0) {
+		// Remove movies shown 
+		clearCurrentMovie();
+	};
+
+	// Check for movies array states
+	if (movies.length === 0) { 
+		console.log("Movies array is empty!")
+		// Fetch movies
+		await getMovies();
+	} 
+
+	console.log(movies);
+
+
+	// Altered so that we dont make a request every time we press lets play 
+	// Get array of movies from API 
+	//var movies = await getMovies(); 
+
+	// Get random movie from helper function 
+	var randomMovie = await getRandomMovie(movies); 
+	// Get info of movie from API 
+	var info = await getMovieInfo(randomMovie);
+	// Configure html elements 
+	displayMovie(info); 
+};
+
+// Immediately add genres 
+getGenres().then(populateGenreDropdown);
+// Starts global event chain!
+playBtn.onclick = showRandomMovie;
+// Listen for user changing genres 
+document.getElementById("genres").addEventListener("change", () => {
+	movies.splice(0, movies.length);
+});
+
+// Execute upon selecting a movie 
+//function movieSelector() {
+	// Remove hidden attribute in HTML 
+
+	// Populate Genres 
+
+	// Add event listener
+//}
+
+// Execute upon selecting a show 
+//function showSelector() {
+	// Remove hidden attribute in HTML 
+
+	// Populate Genres 
+
+	// Add event listener 
+
+//}
+
+
+// Todo - 
+// Add functionality to select search parameters further 
+// Add functionality to choose between shows and movies 
+// Add functionality to save a list of rated movies from local database 
+
